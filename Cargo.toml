@@ -2,7 +2,7 @@
 name = "tmux-helper"
 version = "0.1.0"
 authors = ["Ultra Desu <ultradesu@hexor.ru>"]
-edition = "2019"
+edition = "2018"
 
 [dependencies]
 sys-info = "*"
