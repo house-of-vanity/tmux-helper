@@ -12,70 +12,65 @@ fn read_file(file_path: &str) -> String {
         .expect("Cant read file.")
 }
 
-fn mem() {
+
+fn to_bar(value: i32, max: i32, low: f32, mid: f32) {
+    let mut bar = "".to_string();
+    let bar_sym = "▮".to_string();
+    if (value as f32) / (max as f32) < low {
+        bar.push_str(LOW);
+    } else if (value as f32) / (max as f32) < mid {
+        bar.push_str(MID);
+    } else {
+        bar.push_str(HIGH);
+    }
+    for i in 0..max {
+        if i < value as i32 {
+            bar.push_str(&bar_sym);
+        } else {bar.push_str(" ")}
+    }
+    bar.push_str(END);
+    bar.push_str("|");
+    print!("{}", bar)
+}
+
+fn mem_load_bar(bar_len: i32) {
     let memory;
     match sys_info::mem_info() {
         Err(w) => panic!("{:?}", w),
         Ok(mem_data) => memory = mem_data,
     }
-    let mem_color: &str;
-    if memory.free+memory.cached <= memory.total / 100 {
-        mem_color = HIGH;
-    } else if memory.free+memory.cached <= memory.total / 30{
-        mem_color = MID;
-    } else {
-        mem_color = LOW;
-    }
-    let mem_total = memory.total as f32;
-    println!("MEM: {:.1}GiB avail:{}{}MiB{}",
-        mem_total/1024./1024.,
-        mem_color,
-        memory.free/1024+memory.cached/1024,
-        END);
+    let len = ((memory.total - memory.avail) as f32 / (memory.total as f32) * bar_len as f32) as i32;
+    to_bar(len, bar_len, 0.7, 0.9);
+    print!("{:.0} MiB", memory.avail/1024);
 }
 
-fn cpu_load() {
+fn cpu_load_bar(bar_len: i32) {
     let load = read_file("/proc/loadavg");
     let load_data = load.split_whitespace().collect::<Vec<&str>>();
     let _cpu_count = read_file("/proc/cpuinfo");
     let cpu_count = _cpu_count.matches("model name").count();
     let one: f32 = load_data[0].parse().unwrap();
-    let five: f32 = load_data[1].parse().unwrap();
-    let fiveteen: f32 = load_data[2].parse().unwrap();
-    let load_color: &str;
-    if one + five + fiveteen > (cpu_count * 3) as f32 {
-        load_color = HIGH;
-    } else if one + five + fiveteen > cpu_count as f32{
-        load_color = MID;
-    } else {
-        load_color = LOW;
-    }
-
-    println!("CPU: {}|{}{:.2} {:.2} {:.2}{}",
-        cpu_count,
-        load_color,
-        one,
-        five,
-        fiveteen,
-        END);
+    let len: f32 = one as f32 / cpu_count as f32 * bar_len as f32;
+    to_bar(len as i32, bar_len, 0.3, 0.7);
+    print!("{:.2} LA1", one);
 }
-
 
 fn main() {
   let args: Vec<String> = env::args().collect();
+  let help_text: &str = "Available commands -mb, -cb";
   match args.len() {
         1 => {
-            panic!("Available commands -m, -c");
+            panic!(help_text);
         },
         2 => {
             match args[1].as_ref() {
-                "-c" => cpu_load(),
-                "-m" => mem(),
-                _ => panic!("Available commands -m, -c"),
+                "-cb" => cpu_load_bar(15),
+                "-mb" => mem_load_bar(15),
+                _ => panic!(help_text),
             }
         },
         _ => {
-            panic!("Available commands -m, -c");
+            panic!(help_text);
         }
   }
 }
