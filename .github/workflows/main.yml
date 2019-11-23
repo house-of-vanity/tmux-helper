@@ -1,0 +1,19 @@
+name: Rust
+
+on: release
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build
+      run: cargo build --verbose --release
+    - name: Upload to release
+      uses: JasonEtco/upload-to-release@master
+      with:
+        args: target/release/tmux_helper
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
