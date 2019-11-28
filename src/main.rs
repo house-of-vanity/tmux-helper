@@ -1,5 +1,9 @@
+extern crate dbus;
+
 use std::fs;
 use std::env;
+use std::time::Duration;
+use dbus::blocking::Connection;
 use sys_info;
 
 const LOW: &str = "#[fg=colour186]";
@@ -55,6 +59,25 @@ fn cpu_load_bar(bar_len: i32) {
     print!("{:.2} LA1", one);
 }
 
+fn player_info() -> Result<(), Box<dyn std::error::Error>> {
+    // First open up a connection to the session bus.
+    let conn = Connection::new_session()?;
+
+    // Second, create a wrapper struct around the connection that makes it easy
+    // to send method calls to a specific destination and path.
+    let proxy = conn.with_proxy("org.mpris.MediaPlayer2.cmus", "/org/mpris/MediaPlayer2", Duration::from_millis(5000));
+
+    // Now make the method call. The ListNames method call takes zero input parameters and
+    // one output parameter which is an array of strings.
+    // Therefore the input is a zero tuple "()", and the output is a single tuple "(names,)".
+    let (names,): (Vec<String>,) = proxy.method_call("org.mpris.MediaPlayer2.cmus", "Metadata", ())?;
+
+    // Let's print all the names to stdout.
+    for name in names { println!("{}", name); }
+
+    Ok(())
+}
+
 fn main() {
   let args: Vec<String> = env::args().collect();
   let help_text: &str = "Available commands -mb, -cb";
@@ -66,6 +89,7 @@ fn main() {
             match args[1].as_ref() {
                 "-cb" => cpu_load_bar(15),
                 "-mb" => mem_load_bar(15),
+                "-p" => { let x = player_info();},
                 _ => panic!(help_text),
             }
         },
