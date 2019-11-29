@@ -1,9 +1,7 @@
 extern crate dbus;
-
-use dbus::blocking::Connection;
-use std::env;
-use std::fs;
-use std::time::Duration;
+use crate::dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
+use dbus::{arg, blocking::Connection};
+use std::{collections::HashMap, env, fs, time::Duration};
 use sys_info;
 
 const LOW: &str = "#[fg=colour186]";
@@ -60,29 +58,43 @@ fn cpu_load_bar(bar_len: i32) {
     print!("{:.2} LA1", one);
 }
 
-fn player_info() -> Result<(), Box<dyn std::error::Error>> {
-    // First open up a connection to the session bus.
-    let conn = Connection::new_session()?;
+fn print_refarg(value: &dyn arg::RefArg) {
+    // We don't know what type the value is. We'll try a few and fall back to
+    // debug printing if the value is more complex than that.
+    if let Some(s) = value.as_str() {
+        println!("{}", s);
+    } else if let Some(i) = value.as_i64() {
+        println!("{}", i);
+//  } else if let Some(mut c) = value.as_iter() {
+//      while let Some(key) = c.next() {
+//          // Printing the key is easy, since we know it's a String.
+//          print!("  {}: ", key.as_str().unwrap());
+//          let val = c.next().unwrap();
+//          print_refarg(&val);
+//      }
+    } else {
+        println!("{:?}", value);
+    }
+}
 
-    // Second, create a wrapper struct around the connection that makes it easy
-    // to send method calls to a specific destination and path.
+fn player_info() -> Result<(), Box<dyn std::error::Error>> {
+    let conn = Connection::new_session()?;
     let proxy = conn.with_proxy(
         "org.mpris.MediaPlayer2.cmus",
         "/org/mpris/MediaPlayer2",
         Duration::from_millis(5000),
     );
+    let metadata: Box<dyn arg::RefArg> =
+        proxy.get("org.mpris.MediaPlayer2.Player", "Metadata")?;
+    let mut iter = metadata.as_iter().unwrap();
 
-    // Now make the method call. The ListNames method call takes zero input parameters and
-    // one output parameter which is an array of strings.
-    // Therefore the input is a zero tuple "()", and the output is a single tuple "(names,)".
-    let (names,): (Vec<String>,) =
-        proxy.method_call("org.mpris.MediaPlayer2.cmus", "Metadata", ())?;
-
-    // Let's print all the names to stdout.
-    for name in names {
-        println!("{}", name);
+    println!("Option 2:");
+    while let Some(key) = iter.next() {
+        // Printing the key is easy, since we know it's a String.
+        print!("  {}: ", key.as_str().unwrap());
+        let value = iter.next().unwrap();
+        print_refarg(&value);
     }
-
     Ok(())
 }
 
@@ -98,6 +110,7 @@ fn main() {
             "-mb" => mem_load_bar(15),
             "-p" => {
                 let x = player_info();
+                println!("{:?}", x);
             }
             _ => panic!(help_text),
         },
