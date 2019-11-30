@@ -1,7 +1,7 @@
 extern crate dbus;
 use crate::dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
 use dbus::{arg, blocking::Connection};
-use std::{collections::HashMap, env, fs, time::Duration};
+use std::{env, fs, time::Duration};
 use sys_info;
 
 const LOW: &str = "#[fg=colour186]";
@@ -9,9 +9,11 @@ const MID: &str = "#[fg=colour208]";
 const HIGH: &str = "#[fg=colour160]";
 const END: &str = "#[fg=colour7]";
 
-struct Track_info<'a> {
-    title: &'a str,
-    artist: &'a str,
+struct TrackInfo {
+    title: String,
+    artist: String,
+    position: String,
+    duration: String,
 }
 
 fn read_file(file_path: &str) -> String {
@@ -63,25 +65,7 @@ fn cpu_load_bar(bar_len: i32) {
     print!("{:.2} LA1", one);
 }
 
-fn print_refarg(value: &dyn arg::RefArg) {
-    if let Some(s) = value.as_str() {
-        println!("{}", s);
-    } else if let Some(i) = value.as_i64() {
-        println!("{}", i);
-    } else if let Some(mut c) = value.as_iter() {
-        while let Some(val) = c.next() {
-            if let Some(mut line) = val.as_iter() {
-                print!("{:?}", line.next().unwrap());
-            }
-        }
-        println!("");
-    } else {
-        println!("{:?}", value);
-    }
-}
-
-//fn player_info(player: &str) -> Result<(), Box<dyn std::error::Error>> {
-fn player_info<'a>(player: &'a str) -> Result<Track_info, Box<dyn std::error::Error>> {
+fn player_info(player: &str) -> Result<TrackInfo, Box<dyn std::error::Error>> {
     let conn = Connection::new_session()?;
     let mut service: String = "org.mpris.MediaPlayer2.".to_owned();
     service.push_str(player);
@@ -92,28 +76,43 @@ fn player_info<'a>(player: &'a str) -> Result<Track_info, Box<dyn std::error::Er
     );
     let metadata: Box<dyn arg::RefArg> = proxy.get("org.mpris.MediaPlayer2.Player", "Metadata")?;
     let mut iter = metadata.as_iter().unwrap();
-    let mut track_info = Track_info {
-        artist: "",
-        title: "",
+    let mut track_info = TrackInfo {
+        artist: "".to_string(),
+        title: "".to_string(),
+        position: "".to_string(),
+        duration: "".to_string(),
     };
     while let Some(key) = iter.next() {
         if key.as_str() == Some("xesam:title") {
             if let Some(title) = iter.next().unwrap().as_str() {
-                track_info.title = title;
+                track_info.title = title.to_string();
+            }
+        }
+        if key.as_str() == Some("mpris:length") {
+            if let Some(length) = iter.next().unwrap().as_i64() {
+                track_info.duration = format_time(length / 1000000);
             }
         }
         if key.as_str() == Some("xesam:artist") {
             if let Some(mut artists) = iter.next().unwrap().as_iter() {
                 while let Some(artist) = artists.next() {
                     if let Some(mut line) = artist.as_iter() {
-                        track_info.artist = line.next().unwrap().as_str().unwrap();
+                        track_info.artist = line.next().unwrap().as_str().unwrap().to_string();
                     }
                 }
             }
         }
     }
-    //Ok(Box::new(track_info))
+    let position: Box<dyn arg::RefArg> = proxy.get("org.mpris.MediaPlayer2.Player", "Position")?;
+    track_info.position = format_time(position.as_i64().unwrap() / 1000000);
     Ok(track_info)
+}
+
+fn format_time(sec: i64) -> String {
+    let minutes = sec / 60;
+    let secondes = sec % 60;
+    let result = format!("{:02}:{:02}", minutes, secondes);
+    result.to_string()
 }
 
 fn main() {
@@ -126,12 +125,13 @@ fn main() {
         2 => match args[1].as_ref() {
             "-cb" => cpu_load_bar(15),
             "-mb" => mem_load_bar(15),
-            "-p" => {
-                match player_info("cmus") {
-                    Ok(track_info) => println!("{:?}, {:?}", track_info.title, track_info.artist),
-                    Err(e) => panic!("Error"),
-                }
-            }
+            "-p" => match player_info("cmus") {
+                Ok(track_info) => println!(
+                    "{} - {} [{}/{}]",
+                    track_info.title, track_info.artist, track_info.position, track_info.duration
+                ),
+                Err(_e) => panic!("Can't get mediaplayer info."),
+            },
             _ => panic!(help_text),
         },
         _ => {
