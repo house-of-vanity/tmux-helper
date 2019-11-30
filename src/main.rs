@@ -9,6 +9,11 @@ const MID: &str = "#[fg=colour208]";
 const HIGH: &str = "#[fg=colour160]";
 const END: &str = "#[fg=colour7]";
 
+struct Track_info<'a> {
+    title: &'a str,
+    artist: &'a str,
+}
+
 fn read_file(file_path: &str) -> String {
     fs::read_to_string(file_path).expect("Cant read file.")
 }
@@ -59,43 +64,56 @@ fn cpu_load_bar(bar_len: i32) {
 }
 
 fn print_refarg(value: &dyn arg::RefArg) {
-    // We don't know what type the value is. We'll try a few and fall back to
-    // debug printing if the value is more complex than that.
     if let Some(s) = value.as_str() {
         println!("{}", s);
     } else if let Some(i) = value.as_i64() {
         println!("{}", i);
-//  } else if let Some(mut c) = value.as_iter() {
-//      while let Some(key) = c.next() {
-//          // Printing the key is easy, since we know it's a String.
-//          print!("  {}: ", key.as_str().unwrap());
-//          let val = c.next().unwrap();
-//          print_refarg(&val);
-//      }
+    } else if let Some(mut c) = value.as_iter() {
+        while let Some(val) = c.next() {
+            if let Some(mut line) = val.as_iter() {
+                print!("{:?}", line.next().unwrap());
+            }
+        }
+        println!("");
     } else {
         println!("{:?}", value);
     }
 }
 
-fn player_info() -> Result<(), Box<dyn std::error::Error>> {
+//fn player_info(player: &str) -> Result<(), Box<dyn std::error::Error>> {
+fn player_info<'a>(player: &'a str) -> Result<Track_info, Box<dyn std::error::Error>> {
     let conn = Connection::new_session()?;
+    let mut service: String = "org.mpris.MediaPlayer2.".to_owned();
+    service.push_str(player);
     let proxy = conn.with_proxy(
-        "org.mpris.MediaPlayer2.cmus",
+        service,
         "/org/mpris/MediaPlayer2",
         Duration::from_millis(5000),
     );
-    let metadata: Box<dyn arg::RefArg> =
-        proxy.get("org.mpris.MediaPlayer2.Player", "Metadata")?;
+    let metadata: Box<dyn arg::RefArg> = proxy.get("org.mpris.MediaPlayer2.Player", "Metadata")?;
     let mut iter = metadata.as_iter().unwrap();
-
-    println!("Option 2:");
+    let mut track_info = Track_info {
+        artist: "",
+        title: "",
+    };
     while let Some(key) = iter.next() {
-        // Printing the key is easy, since we know it's a String.
-        print!("  {}: ", key.as_str().unwrap());
-        let value = iter.next().unwrap();
-        print_refarg(&value);
+        if key.as_str() == Some("xesam:title") {
+            if let Some(title) = iter.next().unwrap().as_str() {
+                track_info.title = title;
+            }
+        }
+        if key.as_str() == Some("xesam:artist") {
+            if let Some(mut artists) = iter.next().unwrap().as_iter() {
+                while let Some(artist) = artists.next() {
+                    if let Some(mut line) = artist.as_iter() {
+                        track_info.artist = line.next().unwrap().as_str().unwrap();
+                    }
+                }
+            }
+        }
     }
-    Ok(())
+    //Ok(Box::new(track_info))
+    Ok(track_info)
 }
 
 fn main() {
@@ -109,8 +127,10 @@ fn main() {
             "-cb" => cpu_load_bar(15),
             "-mb" => mem_load_bar(15),
             "-p" => {
-                let x = player_info();
-                println!("{:?}", x);
+                match player_info("cmus") {
+                    Ok(track_info) => println!("{:?}, {:?}", track_info.title, track_info.artist),
+                    Err(e) => panic!("Error"),
+                }
             }
             _ => panic!(help_text),
         },
