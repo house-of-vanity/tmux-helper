@@ -4,10 +4,13 @@ use dbus::{arg, blocking::Connection};
 use std::{env, fs, time::Duration};
 use sys_info;
 
-const LOW: &str = "#[fg=colour186]";
-const MID: &str = "#[fg=colour208]";
-const HIGH: &str = "#[fg=colour160]";
+const LOW: &str = "#[fg=colour2]";
+const MID: &str = "#[fg=colour3]";
+const HIGH: &str = "#[fg=colour1]";
 const END: &str = "#[fg=colour7]";
+const TRACK_NAME: &str = "#[fg=colour3]";
+const TRACK_ARTIST: &str = "#[fg=colour3]";
+const TRACK_TIME: &str = "#[bg=colour252 fg=colour235 bold]";
 
 struct TrackInfo {
     title: String,
@@ -126,10 +129,31 @@ fn main() {
             "-cb" => cpu_load_bar(15),
             "-mb" => mem_load_bar(15),
             "-p" => match player_info("cmus") {
-                Ok(track_info) => println!(
-                    "{} - {} [{}/{}]",
-                    track_info.title, track_info.artist, track_info.position, track_info.duration
-                ),
+                Ok(mut track_info) => {
+                    let title_len = 30;
+                    let artist_len = 30;
+                    if track_info.title.len() >= title_len {
+                        track_info.title.truncate(title_len);
+                        track_info.title.push_str("..");
+                    }
+                    if track_info.artist.len() >= artist_len {
+                        track_info.artist.truncate(artist_len);
+                        track_info.artist.push_str("..");
+                    }
+                    println!(
+                        "#[none]#[bold]{}{}{}#[none]{} - {}{} {}[{}/{}]{}",
+                        TRACK_NAME,
+                        track_info.title,
+                        END,
+                        TRACK_ARTIST,
+                        track_info.artist,
+                        END,
+                        TRACK_TIME,
+                        track_info.position,
+                        track_info.duration,
+                        END,
+                    );
+                }
                 Err(_e) => panic!("Can't get mediaplayer info."),
             },
             _ => panic!(help_text),
