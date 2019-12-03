@@ -14,6 +14,7 @@ struct TrackInfo {
     artist: String,
     position: String,
     duration: String,
+    status: String,
 }
 
 fn read_file(file_path: &str) -> String {
@@ -81,6 +82,7 @@ fn player_info(player: &str) -> Result<TrackInfo, Box<dyn std::error::Error>> {
         title: "".to_string(),
         position: "".to_string(),
         duration: "".to_string(),
+        status: "".to_string(),
     };
     while let Some(key) = iter.next() {
         if key.as_str() == Some("xesam:title") {
@@ -105,6 +107,14 @@ fn player_info(player: &str) -> Result<TrackInfo, Box<dyn std::error::Error>> {
     }
     let position: Box<dyn arg::RefArg> = proxy.get("org.mpris.MediaPlayer2.Player", "Position")?;
     track_info.position = format_time(position.as_i64().unwrap() / 1000000);
+    // ugly
+    let _status_text_box: Box<dyn arg::RefArg> = proxy.get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")?;
+    let _status_text = _status_text_box.as_str().unwrap();
+    match _status_text.as_ref() {
+        "Playing" => track_info.status = "▶".to_string(),
+        "Paused"  => track_info.status = "⏸".to_string(),
+        _ => track_info.status = "⏹".to_string(),
+    };
     Ok(track_info)
 }
 
@@ -127,10 +137,10 @@ fn main() {
             "-mb" => mem_load_bar(15),
             "-p" => match player_info("cmus") {
                 Ok(track_info) => println!(
-                    "{} - {} [{}/{}]",
-                    track_info.title, track_info.artist, track_info.position, track_info.duration
+                    "{} - {} [{}/{}] {} ",
+                    track_info.title, track_info.artist, track_info.position, track_info.duration, track_info.status
                 ),
-                Err(_e) => panic!("Can't get mediaplayer info."),
+                Err(_e) => println!("No music playing"),
             },
             _ => panic!(help_text),
         },
