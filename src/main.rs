@@ -2,7 +2,7 @@ extern crate dbus;
 use crate::dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
 use dbus::{arg, blocking::Connection};
 use std::{env, fs, time::Duration};
- use sys_info;
+use sys_info;
 
 const LOW: &str = "#[fg=colour2]";
 const MID: &str = "#[fg=colour3]";
