@@ -11,6 +11,8 @@ jobs:
     - uses: actions/checkout@v1
     - name: Build
       run: cargo build --verbose --release
+      env:
+        RUST_BACKTRACE: 1
     - name: Strip
       run: strip target/release/tmux-helper
 

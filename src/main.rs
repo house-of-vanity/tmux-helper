@@ -2,7 +2,7 @@ extern crate dbus;
 use crate::dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
 use dbus::{arg, blocking::Connection};
 use std::{env, fs, time::Duration};
-use sys_info;
+ use sys_info;
 
 const LOW: &str = "#[fg=colour2]";
 const MID: &str = "#[fg=colour3]";
@@ -111,11 +111,12 @@ fn player_info(player: &str) -> Result<TrackInfo, Box<dyn std::error::Error>> {
     let position: Box<dyn arg::RefArg> = proxy.get("org.mpris.MediaPlayer2.Player", "Position")?;
     track_info.position = format_time(position.as_i64().unwrap() / 1000000);
     // ugly
-    let _status_text_box: Box<dyn arg::RefArg> = proxy.get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")?;
+    let _status_text_box: Box<dyn arg::RefArg> =
+        proxy.get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")?;
     let _status_text = _status_text_box.as_str().unwrap();
     match _status_text.as_ref() {
         "Playing" => track_info.status = "▶".to_string(),
-        "Paused"  => track_info.status = "⏸".to_string(),
+        "Paused" => track_info.status = "⏸".to_string(),
         _ => track_info.status = "⏹".to_string(),
     };
     Ok(track_info)
