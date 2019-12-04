@@ -8,9 +8,14 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    
     - uses: actions/checkout@v1
+    - name: Pre-build
+      run: apt install -y libdbus-1-dev pkg-config libdbus-1-3
     - name: Build
       run: cargo build --verbose --release
+      env:
+        RUST_BACKTRACE: 1
     - name: Strip
       run: strip target/release/tmux-helper
     - name: Upload to release
