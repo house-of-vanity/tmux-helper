@@ -172,7 +172,6 @@ fn main() {
                         track_info.title.truncate(title_len);
                         track_info.title.push_str("..");
                     }
-                    println!("{}, {}", track_info.artist, track_info.artist.len());
                     if track_info.artist.len() >= artist_len {
                         track_info.artist.truncate(artist_len);
                         track_info.artist.push_str("..");
