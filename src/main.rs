@@ -12,6 +12,7 @@ const TRACK_NAME: &str = "#[fg=colour3]";
 const TRACK_ARTIST: &str = "#[fg=colour3]";
 const TRACK_TIME: &str = "#[bg=colour252 fg=colour235 bold]";
 
+#[derive(Debug, Clone)]
 struct TrackInfo {
     title: String,
     artist: String,
@@ -69,57 +70,81 @@ fn cpu_load_bar(bar_len: i32) {
     print!("{:.2} LA1", one);
 }
 
-fn player_info(player: &str) -> Result<TrackInfo, Box<dyn std::error::Error>> {
+fn get_player() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     let conn = Connection::new_session()?;
-    let mut service: String = "org.mpris.MediaPlayer2.".to_owned();
-    service.push_str(player);
-    let proxy = conn.with_proxy(
-        service,
-        "/org/mpris/MediaPlayer2",
-        Duration::from_millis(5000),
-    );
-    let metadata: Box<dyn arg::RefArg> = proxy.get("org.mpris.MediaPlayer2.Player", "Metadata")?;
-    let mut iter = metadata.as_iter().unwrap();
-    let mut track_info = TrackInfo {
-        artist: "".to_string(),
-        title: "".to_string(),
-        position: "".to_string(),
-        duration: "".to_string(),
-        status: "".to_string(),
-    };
-    while let Some(key) = iter.next() {
-        if key.as_str() == Some("xesam:title") {
-            if let Some(title) = iter.next().unwrap().as_str() {
-                track_info.title = title.to_string();
-            }
+    let proxy = conn.with_proxy("org.freedesktop.DBus", "/", Duration::from_millis(5000));
+    let (names,): (Vec<String>,) = proxy.method_call("org.freedesktop.DBus", "ListNames", ())?;
+    let mut players: Vec<String> = Vec::new();
+    for name in names {
+        if name.contains("org.mpris.MediaPlayer2") {
+            players.push(name);
+            //println!("{}", name);
         }
-        if key.as_str() == Some("mpris:length") {
-            if let Some(length) = iter.next().unwrap().as_i64() {
-                track_info.duration = format_time(length / 1000000);
+    }
+
+    Ok(players)
+}
+
+fn player_info(players: Vec<String>) -> Result<TrackInfo, Box<dyn std::error::Error>> {
+    let mut players_vec: Vec<TrackInfo> = Vec::new();
+    for player in players {
+        let mut track_info = TrackInfo {
+            artist: "".to_string(),
+            title: "".to_string(),
+            position: "".to_string(),
+            duration: "".to_string(),
+            status: "".to_string(),
+        };
+        let conn = Connection::new_session()?;
+        let proxy = conn.with_proxy(
+            player,
+            "/org/mpris/MediaPlayer2",
+            Duration::from_millis(5000),
+        );
+        let metadata: Box<dyn arg::RefArg> =
+            proxy.get("org.mpris.MediaPlayer2.Player", "Metadata")?;
+        let mut iter = metadata.as_iter().unwrap();
+        while let Some(key) = iter.next() {
+            if key.as_str() == Some("xesam:title") {
+                if let Some(title) = iter.next().unwrap().as_str() {
+                    track_info.title = title.to_string();
+                }
             }
-        }
-        if key.as_str() == Some("xesam:artist") {
-            if let Some(mut artists) = iter.next().unwrap().as_iter() {
-                while let Some(artist) = artists.next() {
-                    if let Some(mut line) = artist.as_iter() {
-                        track_info.artist = line.next().unwrap().as_str().unwrap().to_string();
+            if key.as_str() == Some("mpris:length") {
+                if let Some(length) = iter.next().unwrap().as_i64() {
+                    track_info.duration = format_time(length / 1000000);
+                }
+            }
+            if key.as_str() == Some("xesam:artist") {
+                if let Some(mut artists) = iter.next().unwrap().as_iter() {
+                    while let Some(artist) = artists.next() {
+                        if let Some(mut line) = artist.as_iter() {
+                            track_info.artist = line.next().unwrap().as_str().unwrap().to_string();
+                        }
                     }
                 }
             }
         }
+        let position: Box<dyn arg::RefArg> =
+            proxy.get("org.mpris.MediaPlayer2.Player", "Position")?;
+        track_info.position = format_time(position.as_i64().unwrap() / 1000000);
+        // ugly
+        let _status_text_box: Box<dyn arg::RefArg> =
+            proxy.get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")?;
+        let _status_text = _status_text_box.as_str().unwrap();
+        match _status_text.as_ref() {
+            "Playing" => track_info.status = "▶".to_string(),
+            "Paused" => track_info.status = "⏸".to_string(),
+            _ => track_info.status = "⏹".to_string(),
+        };
+        players_vec.push(track_info);
     }
-    let position: Box<dyn arg::RefArg> = proxy.get("org.mpris.MediaPlayer2.Player", "Position")?;
-    track_info.position = format_time(position.as_i64().unwrap() / 1000000);
-    // ugly
-    let _status_text_box: Box<dyn arg::RefArg> =
-        proxy.get("org.mpris.MediaPlayer2.Player", "PlaybackStatus")?;
-    let _status_text = _status_text_box.as_str().unwrap();
-    match _status_text.as_ref() {
-        "Playing" => track_info.status = "▶".to_string(),
-        "Paused" => track_info.status = "⏸".to_string(),
-        _ => track_info.status = "⏹".to_string(),
-    };
-    Ok(track_info)
+    for player in &players_vec {
+        if player.status == "▶".to_string() {
+            return Ok(player.clone());
+        }
+    }
+    Ok(players_vec[players_vec.len() - 1].clone())
 }
 
 fn format_time(sec: i64) -> String {
@@ -139,7 +164,7 @@ fn main() {
         2 => match args[1].as_ref() {
             "-cb" => cpu_load_bar(15),
             "-mb" => mem_load_bar(15),
-            "-p" => match player_info("cmus") {
+            "-p" => match player_info(get_player().unwrap()) {
                 Ok(mut track_info) => {
                     let title_len = 30;
                     let artist_len = 30;
@@ -147,6 +172,7 @@ fn main() {
                         track_info.title.truncate(title_len);
                         track_info.title.push_str("..");
                     }
+                    println!("{}, {}", track_info.artist, track_info.artist.len());
                     if track_info.artist.len() >= artist_len {
                         track_info.artist.truncate(artist_len);
                         track_info.artist.push_str("..");
