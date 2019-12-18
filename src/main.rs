@@ -167,7 +167,7 @@ fn main() {
                 Ok(mut track_info) => {
                     let mut title_len = 30;
                     let mut artist_len = 30;
-                    let mut separator: String = " - ".to_string();
+                    let mut separator: String = " — ".to_string();
                     let max_shift = 6;
                     if track_info.artist.chars().count() == 0 {
                         separator = "".to_string();
