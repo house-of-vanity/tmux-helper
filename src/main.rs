@@ -78,7 +78,6 @@ fn get_player() -> Result<Vec<String>, Box<dyn std::error::Error>> {
     for name in names {
         if name.contains("org.mpris.MediaPlayer2") {
             players.push(name);
-            //println!("{}", name);
         }
     }
 
@@ -166,21 +165,49 @@ fn main() {
             "-mb" => mem_load_bar(15),
             "-p" => match player_info(get_player().unwrap()) {
                 Ok(mut track_info) => {
-                    let title_len = 30;
-                    let artist_len = 30;
-                    if track_info.title.len() >= title_len {
-                        track_info.title.truncate(title_len);
-                        track_info.title.push_str("..");
+                    let mut title_len = 30;
+                    let mut artist_len = 30;
+                    let mut separator: String = " - ".to_string();
+                    let max_shift = 6;
+                    if title_len + max_shift >= track_info.title.chars().count() {
+                        title_len = track_info.title.chars().count()
                     }
-                    if track_info.artist.len() >= artist_len {
-                        track_info.artist.truncate(artist_len);
-                        track_info.artist.push_str("..");
+                    if track_info.title.len() > title_len {
+                        let mut title: String = String::new();
+                        let mut counter = 0;
+                        for ch in track_info.title.chars() {
+                            if counter == title_len {
+                                break;
+                            }
+                            title.push(ch);
+                            counter += 1;
+                        }
+                        title.push_str("..");
+                        track_info.title = title;
+                    }
+                    if artist_len + max_shift >= track_info.artist.chars().count() {
+                        artist_len = track_info.artist.chars().count()
+                    }
+                    if track_info.artist.chars().count() == 0 {separator = "".to_string()}
+                    if track_info.artist.len() > artist_len {
+                        let mut artist: String = String::new();
+                        let mut counter = 0;
+                        for ch in track_info.artist.chars() {
+                            if counter == artist_len {
+                                break;
+                            }
+                            artist.push(ch);
+                            counter += 1;
+                        }
+                        artist.push_str("..");
+                        track_info.artist = artist;
                     }
                     println!(
-                        "#[none]#[bold]{}{}{}#[none]{} - {}{} {}[{}/{}] {} {}",
+                        "#[none]#[bold]{}{}{}#[none]{}{}{}{} {}[{}/{}] {} {}",
                         TRACK_NAME,
                         track_info.title,
                         END,
+                        separator,
                         TRACK_ARTIST,
                         track_info.artist,
                         END,
