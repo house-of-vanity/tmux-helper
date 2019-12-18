@@ -169,6 +169,26 @@ fn main() {
                     let mut artist_len = 30;
                     let mut separator: String = " - ".to_string();
                     let max_shift = 6;
+                    if track_info.artist.chars().count() == 0 {
+                        separator = "".to_string();
+                        title_len += artist_len;
+                    }
+                    if artist_len + max_shift >= track_info.artist.chars().count() {
+                        artist_len = track_info.artist.chars().count()
+                    }
+                    if track_info.artist.len() > artist_len {
+                        let mut artist: String = String::new();
+                        let mut counter = 0;
+                        for ch in track_info.artist.chars() {
+                            if counter == artist_len {
+                                artist.push_str("..");
+                                break;
+                            }
+                            artist.push(ch);
+                            counter += 1;
+                        }
+                        track_info.artist = artist;
+                    }
                     if title_len + max_shift >= track_info.title.chars().count() {
                         title_len = track_info.title.chars().count()
                     }
@@ -177,30 +197,13 @@ fn main() {
                         let mut counter = 0;
                         for ch in track_info.title.chars() {
                             if counter == title_len {
+                                title.push_str("..");
                                 break;
                             }
                             title.push(ch);
                             counter += 1;
                         }
-                        title.push_str("..");
                         track_info.title = title;
-                    }
-                    if artist_len + max_shift >= track_info.artist.chars().count() {
-                        artist_len = track_info.artist.chars().count()
-                    }
-                    if track_info.artist.chars().count() == 0 {separator = "".to_string()}
-                    if track_info.artist.len() > artist_len {
-                        let mut artist: String = String::new();
-                        let mut counter = 0;
-                        for ch in track_info.artist.chars() {
-                            if counter == artist_len {
-                                break;
-                            }
-                            artist.push(ch);
-                            counter += 1;
-                        }
-                        artist.push_str("..");
-                        track_info.artist = artist;
                     }
                     println!(
                         "#[none]#[bold]{}{}{}#[none]{}{}{}{} {}[{}/{}] {} {}",
