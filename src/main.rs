@@ -1,5 +1,8 @@
+extern crate chrono;
 extern crate dbus;
+
 use crate::dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
+use chrono::{DateTime, FixedOffset, Local, Utc};
 use dbus::{arg, blocking::Connection};
 use std::{env, fs, time::Duration};
 use sys_info;
@@ -153,9 +156,24 @@ fn format_time(sec: i64) -> String {
     result.to_string()
 }
 
+fn get_time(utc: bool, mut format: &str) {
+    // Format reference: https://docs.rs/chrono/0.4.10/chrono/format/strftime/index.html
+    if format.len() == 0 {
+        format = "%H:%M";
+    }
+    if utc {
+        let local_time = Local::now();
+        let utc_time = DateTime::<Utc>::from_utc(local_time.naive_utc(), Utc);
+        println!("{}", utc_time.format(format));
+    } else {
+        let local_time = Local::now();
+        println!("{}", local_time.format(format));
+    }
+}
+
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let help_text: &str = "Available commands -mb, -cb";
+    let help_text: &str = "Available commands -mb, -cb, -tl <TIME FORMAT>, -tu <TIME FORMAT>, -p";
     match args.len() {
         1 => {
             panic!(help_text);
@@ -163,6 +181,8 @@ fn main() {
         2 => match args[1].as_ref() {
             "-cb" => cpu_load_bar(15),
             "-mb" => mem_load_bar(15),
+            "-tl" => get_time(false, ""),
+            "-tu" => get_time(true, ""),
             "-p" => match player_info(get_player().unwrap()) {
                 Ok(mut track_info) => {
                     let mut title_len = 30;
@@ -223,6 +243,11 @@ fn main() {
                 }
                 Err(_e) => println!("No music playing"),
             },
+            _ => panic!(help_text),
+        },
+        3 => match args[1].as_ref() {
+            "-tl" => get_time(false, args[2].as_ref()),
+            "-tu" => get_time(true, args[2].as_ref()),
             _ => panic!(help_text),
         },
         _ => {
