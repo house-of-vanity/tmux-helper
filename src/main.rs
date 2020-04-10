@@ -2,18 +2,18 @@ extern crate chrono;
 extern crate dbus;
 
 use crate::dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
-use chrono::{DateTime, FixedOffset, Local, Utc};
+use chrono::{DateTime, Local, Utc};
 use dbus::{arg, blocking::Connection};
 use std::{env, fs, time::Duration};
 use sys_info;
 
-const LOW: &str = "#[fg=colour2]";
-const MID: &str = "#[fg=colour3]";
-const HIGH: &str = "#[fg=colour1]";
-const END: &str = "#[fg=colour7]";
-const TRACK_NAME: &str = "#[fg=colour3]";
-const TRACK_ARTIST: &str = "#[fg=colour3]";
-const TRACK_TIME: &str = "#[bg=colour252 fg=colour235 bold]";
+const LOW: &str = "#[fg=colour119]";
+const MID: &str = "#[fg=colour220]";
+const HIGH: &str = "#[fg=colour197]";
+const END: &str = "#[fg=colour153]";
+const TRACK_NAME: &str = "#[fg=colour46]";
+const TRACK_ARTIST: &str = "#[fg=colour46]";
+const TRACK_TIME: &str = "#[fg=colour153]";
 
 #[derive(Debug, Clone)]
 struct TrackInfo {
@@ -59,7 +59,7 @@ fn mem_load_bar(bar_len: i32) {
     let len =
         ((memory.total - memory.avail) as f32 / (memory.total as f32) * bar_len as f32) as i32;
     to_bar(len, bar_len, 0.7, 0.9);
-    print!("{:.0} MiB", memory.avail / 1024);
+    print!("{:.0} MiB#[default]", memory.avail / 1024);
 }
 
 fn cpu_load_bar(bar_len: i32) {
@@ -70,7 +70,7 @@ fn cpu_load_bar(bar_len: i32) {
     let one: f32 = load_data[0].parse().unwrap();
     let len: f32 = one as f32 / cpu_count as f32 * bar_len as f32;
     to_bar(len as i32, bar_len, 0.3, 0.7);
-    print!("{:.2} LA1", one);
+    print!("{:.2} LA1#[default]", one);
 }
 
 fn get_player() -> Result<Vec<String>, Box<dyn std::error::Error>> {
@@ -226,7 +226,7 @@ fn main() {
                         track_info.title = title;
                     }
                     println!(
-                        "#[none]#[bold]{}{}{}#[none]{}{}{}{} {}[{}/{}] {} {}",
+                        "#[none]#[bold]{}{}{}#[none]{}{}{}{} {}[{}/{}] {} {}#[default]",
                         TRACK_NAME,
                         track_info.title,
                         END,
