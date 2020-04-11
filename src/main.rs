@@ -4,7 +4,7 @@ extern crate dbus;
 use crate::dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
 use chrono::{DateTime, Local, Utc};
 use dbus::{arg, blocking::Connection};
-use std::{env, fs, time::Duration};
+use std::{env, time::Duration};
 use sys_info;
 
 const LOW: &str = "#[fg=colour119]";
@@ -22,10 +22,6 @@ struct TrackInfo {
     position: String,
     duration: String,
     status: String,
-}
-
-fn read_file(file_path: &str) -> String {
-    fs::read_to_string(file_path).expect("Cant read file.")
 }
 
 fn to_bar(value: i32, max: i32, low: f32, mid: f32) {
@@ -63,14 +59,17 @@ fn mem_load_bar(bar_len: i32) {
 }
 
 fn cpu_load_bar(bar_len: i32) {
-    let load = read_file("/proc/loadavg");
-    let load_data = load.split_whitespace().collect::<Vec<&str>>();
-    let _cpu_count = read_file("/proc/cpuinfo");
-    let cpu_count = _cpu_count.matches("model name").count();
-    let one: f32 = load_data[0].parse().unwrap();
-    let len: f32 = one as f32 / cpu_count as f32 * bar_len as f32;
+    let cpu_count = match sys_info::cpu_num() {
+        Ok(c) => c,
+        Err(e) => panic!("{:?}", e),
+    };
+    let la_one: f32 = match sys_info::loadavg() {
+        Ok(l) => l.one as f32,
+        Err(e) => panic!("{:?}", e),
+    };
+    let len: f32 = la_one as f32 / cpu_count as f32 * bar_len as f32;
     to_bar(len as i32, bar_len, 0.3, 0.7);
-    print!("{:.2} LA1#[default]", one);
+    print!("{:.2} LA1#[default]", la_one);
 }
 
 fn get_player() -> Result<Vec<String>, Box<dyn std::error::Error>> {
