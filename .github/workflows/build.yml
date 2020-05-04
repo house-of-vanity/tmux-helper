@@ -75,11 +75,6 @@ jobs:
         with:
           name: arch_linux_tmux-helper-x86_64.pkg.tar.zst
           path: ./artifacts/
-      - name: Download Deb Package
-        uses: actions/download-artifact@v1
-        with:
-          name: tmux-helper_amd64.deb
-          path: ./artifacts/
       - name: Upload binary assets
         run: |
            wget https://github.com/aktau/github-release/releases/download/v0.7.2/linux-amd64-github-release.tar.bz2
