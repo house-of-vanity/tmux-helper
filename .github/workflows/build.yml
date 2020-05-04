@@ -82,3 +82,13 @@ jobs:
            export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
            ./bin/linux/amd64/github-release upload -u house-of-vanity -r tmux-helper --tag ${{ steps.get_version.outputs.FULL_TAG }} --name arch_linux_tmux-helper-${{ steps.get_version.outputs.VERSION }}-x86_64.pkg.tar.zst --file ./artifacts/tmux-helper-x86_64.pkg.tar.zst
            ./bin/linux/amd64/github-release upload -u house-of-vanity -r tmux-helper --tag ${{ steps.get_version.outputs.FULL_TAG }} --name tmux-helper-${{ steps.get_version.outputs.VERSION }} --file ./artifacts/tmux-helper
+
+      - name: Copy package to repository
+        uses: appleboy/scp-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: github_deploy
+          port: 22
+          key: ${{ secrets.SSH_KEY }}
+          source: "./artifacts/tmux-helper-x86_64.pkg.tar.zst"
+          target: "/srv/arch-repo/"
