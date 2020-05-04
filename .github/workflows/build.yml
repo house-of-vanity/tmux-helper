@@ -69,20 +69,21 @@ jobs:
         uses: actions/download-artifact@v1
         with:
           name: tmux-helper
-          path: ./artifacts/
+          path: ./
       - name: Download Arch Package
         uses: actions/download-artifact@v1
         with:
           name: arch_linux_tmux-helper-x86_64.pkg.tar.zst
-          path: ./artifacts/
+          path: ./
       - name: Upload binary assets
         run: |
            wget https://github.com/aktau/github-release/releases/download/v0.7.2/linux-amd64-github-release.tar.bz2
            tar xjf linux-amd64-github-release.tar.bz2
            export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-           ./bin/linux/amd64/github-release upload -u house-of-vanity -r tmux-helper --tag ${{ steps.get_version.outputs.FULL_TAG }} --name arch_linux_tmux-helper-${{ steps.get_version.outputs.VERSION }}-x86_64.pkg.tar.zst --file ./artifacts/tmux-helper-x86_64.pkg.tar.zst
-           ./bin/linux/amd64/github-release upload -u house-of-vanity -r tmux-helper --tag ${{ steps.get_version.outputs.FULL_TAG }} --name tmux-helper-${{ steps.get_version.outputs.VERSION }} --file ./artifacts/tmux-helper
+           ./bin/linux/amd64/github-release upload -u house-of-vanity -r tmux-helper --tag ${{ steps.get_version.outputs.FULL_TAG }} --name arch_linux_tmux-helper-${{ steps.get_version.outputs.VERSION }}-x86_64.pkg.tar.zst --file ./tmux-helper-x86_64.pkg.tar.zst
+           ./bin/linux/amd64/github-release upload -u house-of-vanity -r tmux-helper --tag ${{ steps.get_version.outputs.FULL_TAG }} --name tmux-helper-${{ steps.get_version.outputs.VERSION }} --file ./tmux-helper
 
+      # SCP to arch repo
       - name: Copy package to repository
         uses: appleboy/scp-action@master
         with:
@@ -90,5 +91,5 @@ jobs:
           username: github_deploy
           port: 22
           key: ${{ secrets.SSH_KEY }}
-          source: "./artifacts/tmux-helper-x86_64.pkg.tar.zst"
+          source: "./tmux-helper-x86_64.pkg.tar.zst"
           target: "/srv/arch-repo/"
