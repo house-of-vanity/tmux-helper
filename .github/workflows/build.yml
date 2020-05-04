@@ -1,0 +1,89 @@
+name: Build and publish
+on:
+  push:
+    # Sequence of patterns matched against refs/tags
+    tags:
+    - 'v*' # Push events to matching v*, i.e. v1.0, v20.15.10
+
+jobs:
+  make_bin:
+    name: Build binary
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Pre-build
+        run: sudo apt install -y libdbus-1-dev pkg-config libdbus-1-3 libfuse-dev
+      - uses: actions/checkout@v2
+      - name: Build binary
+        run: cargo build --release
+      - name: Upload binary
+        uses: actions/upload-artifact@v1
+        with:
+          name: tmux-helper
+          path: ./target/release/tmux-helper
+  make_arch:
+      name: Make Arch Linux package
+      runs-on: ubuntu-latest
+      container:
+        image: archlinux
+        options: --privileged
+        volumes:
+          - /sys/fs/cgroup:/sys/fs/cgroup
+      steps:
+        - uses: actions/checkout@v2
+        - name: Build Arch Linux package
+          uses: FFY00/build-arch-package@master
+          with:
+            PKGBUILD: $GITHUB_WORKSPACE/.github/workflows/PKGBUILD
+            OUTDIR: $HOME/arch-packages
+        - run: mv $HOME/arch-packages/*pkg.tar.zst tmux-helper-x86_64.pkg.tar.zst
+        - name: Upload Arch Package
+          uses: actions/upload-artifact@v1
+          with:
+            name: arch_linux_tmux-helper-x86_64.pkg.tar.zst
+            path: ./tmux-helper-x86_64.pkg.tar.zst
+
+  publish:
+    name: Publish release
+    needs: [make_bin, make_arch]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the version (git tag)
+        id: get_version
+        run: |
+          echo ${GITHUB_REF/refs\/tags\/v/}
+          echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
+          echo ::set-output name=FULL_TAG::${GITHUB_REF/refs\/tags\//}
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Download binary
+        uses: actions/download-artifact@v1
+        with:
+          name: tmux-helper
+          path: ./artifacts/
+      - name: Download Arch Package
+        uses: actions/download-artifact@v1
+        with:
+          name: arch_linux_tmux-helper-x86_64.pkg.tar.zst
+          path: ./artifacts/
+      - name: Download Deb Package
+        uses: actions/download-artifact@v1
+        with:
+          name: tmux-helper_amd64.deb
+          path: ./artifacts/
+      - name: Upload binary assets
+        run: |
+           wget https://github.com/aktau/github-release/releases/download/v0.7.2/linux-amd64-github-release.tar.bz2
+           tar xjf linux-amd64-github-release.tar.bz2
+           export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
+           ./bin/linux/amd64/github-release upload -u house-of-vanity -r tmux-helper --tag ${{ steps.get_version.outputs.FULL_TAG }} --name arch_linux_tmux-helper-${{ steps.get_version.outputs.VERSION }}-x86_64.pkg.tar.zst --file ./artifacts/tmux-helper-x86_64.pkg.tar.zst
+           ./bin/linux/amd64/github-release upload -u house-of-vanity -r tmux-helper --tag ${{ steps.get_version.outputs.FULL_TAG }} --name tmux-helper-${{ steps.get_version.outputs.VERSION }} --file ./artifacts/tmux-helper

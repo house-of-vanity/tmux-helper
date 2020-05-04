@@ -1,0 +1,33 @@
+# Maintainer: Alexandr Bogomyakov (ultradesu) <ab@hexor.ru>
+
+pkgname=tmux-helper
+pkgver=0.2.1
+pkgrel=1
+pkgdesc="Tmux helper"
+url="https://github.com/house-of-vanity/tmux-helper.git"
+arch=($CARCH)
+license=(WTFPL custom)
+depends=(tmux dbus)
+makedepends=(cargo git dbus)
+source=("git+https://github.com/house-of-vanity/$pkgname")
+sha512sums=('SKIP')
+
+pkgver() {
+  cd "$srcdir/$pkgname"
+  git describe --long --tags | awk -F '-' '{print $1}'| sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
+}
+
+prepare() {
+  cd "$srcdir/$pkgname"
+  cargo fetch --target $CARCH-unknown-linux-gnu
+}
+
+build() {
+  cd "$srcdir/$pkgname"
+  cargo build --release --frozen --all-targets
+}
+
+package() {
+  cd "$srcdir/$pkgname"
+  install -Dt "$pkgdir/usr/bin" target/release/$pkgname
+}
