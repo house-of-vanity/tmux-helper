@@ -249,8 +249,8 @@ pub fn mpd(config: &config::Config) {
         }
     }
     if let Some(time) = conn.status().unwrap().time {
-            track_info.position = time.0.num_seconds().to_string();
-            track_info.duration = time.1.num_seconds().to_string()
+            track_info.position = format_time(time.0.num_seconds() as i64);
+            track_info.duration = format_time(time.2.num_seconds() as i64);
     }
     let status = match conn.status() {
         Ok(status) => {
