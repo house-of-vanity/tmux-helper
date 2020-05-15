@@ -164,46 +164,39 @@ pub fn get_time(utc: bool, format: Option<String>) {
     }
 }
 
+fn shorten(line: String, max_len: usize, max_shift: usize) -> String {
+    let mut new_line = String::new();
+    let len = if max_len + max_shift >= line.chars().count() {
+        line.chars().count()
+    } else {
+        max_len
+    };
+    if line.len() > len {
+        let mut counter = 0;
+        for ch in line.chars() {
+            if counter == len {
+                new_line.push_str("..");
+                break;
+            }
+            new_line.push(ch);
+            counter += 1;
+        }
+    }
+    else {
+        new_line = line;
+    }
+    new_line
+}
+
 fn format_player(track_info: TrackInfo, config: &config::Config) {
-    let mut title_len = 30;
-    let mut artist_len = 30;
-    let mut artist_line: String = String::new();
-    let mut title_line: String = String::new();
     let mut separator: String = " — ".to_string();
-    let max_shift = 6;
+    let mut max_len = 30;
     if track_info.artist.chars().count() == 0 {
         separator = "".to_string();
-        title_len += artist_len;
+        max_len = max_len * 2;
     }
-    if artist_len + max_shift >= track_info.artist.chars().count() {
-        artist_len = track_info.artist.chars().count()
-    }
-    if track_info.artist.len() > artist_len {
-        let mut counter = 0;
-        for ch in track_info.artist.chars() {
-            if counter == artist_len {
-                artist_line.push_str("..");
-                break;
-            }
-            artist_line.push(ch);
-            counter += 1;
-        }
-
-    }
-    if title_len + max_shift >= track_info.title.chars().count() {
-        title_len = track_info.title.chars().count()
-    }
-    if track_info.title.len() > title_len {
-        let mut counter = 0;
-        for ch in track_info.title.chars() {
-            if counter == title_len {
-                title_line.push_str("..");
-                break;
-            }
-            title_line.push(ch);
-            counter += 1;
-        }
-    }
+    let artist_line = shorten(track_info.artist, max_len, 6);
+    let title_line = shorten(track_info.title, max_len, 6);
     println!(
         "#[none]#[bold]{}{}{}#[none]{}{}{}{} {}[{}/{}] {} {}#[default]",
         config.color_track_name,
@@ -240,12 +233,19 @@ pub fn mpd(config: &config::Config) {
         duration: String::new(),
         status: String::new(),
     };
+//  println!("{:?}", conn.currentsong());
     if let Some(song) = conn.currentsong().unwrap() {
         if let Some(title) = song.title {
             track_info.title = title
         }
         if let Some(artist) = song.tags.get("Artist") {
             track_info.artist = artist.to_string()
+        }
+        // if there is no tags and title.
+        if track_info.artist == track_info.title {
+            if let Some(name) = song.name {
+                track_info.title = name
+            }
         }
     }
     if let Some(time) = conn.status().unwrap().time {
