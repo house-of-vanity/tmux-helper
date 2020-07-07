@@ -55,11 +55,11 @@ pub fn read() -> Config {
                 .short("m")
                 .long("mem")
                 .help("Print mem usage bar.")
-//              .conflicts_with("cpu")
-//              .conflicts_with("mpris")
-//              .conflicts_with("mpd")
-//              .conflicts_with("localtime")
-//              .conflicts_with("utctime")
+                //              .conflicts_with("cpu")
+                //              .conflicts_with("mpris")
+                //              .conflicts_with("mpd")
+                //              .conflicts_with("localtime")
+                //              .conflicts_with("utctime")
                 .required(false),
         )
         .arg(
@@ -67,11 +67,11 @@ pub fn read() -> Config {
                 .short("p")
                 .long("mpris")
                 .help("Show player info using MPRIS2 interface.")
-//              .conflicts_with("cpu")
-//              .conflicts_with("mem")
-//              .conflicts_with("localtime")
-//              .conflicts_with("mpd")
-//              .conflicts_with("utctime")
+                //              .conflicts_with("cpu")
+                //              .conflicts_with("mem")
+                //              .conflicts_with("localtime")
+                //              .conflicts_with("mpd")
+                //              .conflicts_with("utctime")
                 .required(false),
         )
         .arg(
@@ -79,11 +79,11 @@ pub fn read() -> Config {
                 .short("d")
                 .long("mpd")
                 .help("Show mpd player using MPD native protocol.")
-//              .conflicts_with("cpu")
-//              .conflicts_with("mem")
-//              .conflicts_with("localtime")
-//              .conflicts_with("mpris")
-//              .conflicts_with("utctime")
+                //              .conflicts_with("cpu")
+                //              .conflicts_with("mem")
+                //              .conflicts_with("localtime")
+                //              .conflicts_with("mpris")
+                //              .conflicts_with("utctime")
                 .required(false),
         )
         // Options
@@ -92,7 +92,7 @@ pub fn read() -> Config {
                 .short("l")
                 .long("localtime")
                 .help("Local time")
-//              .conflicts_with_all(&["mem", "mpris", "mpd", "cpu", "utctime"])
+                //              .conflicts_with_all(&["mem", "mpris", "mpd", "cpu", "utctime"])
                 .takes_value(true)
                 .required(false),
         )
@@ -101,7 +101,7 @@ pub fn read() -> Config {
                 .short("u")
                 .long("utctime")
                 .help("UTC time")
-//              .conflicts_with_all(&["mem", "mpris", "mpd", "cpu", "localtime"])
+                //              .conflicts_with_all(&["mem", "mpris", "mpd", "cpu", "localtime"])
                 .takes_value(true)
                 .required(false),
         )
@@ -182,13 +182,13 @@ pub fn read() -> Config {
     // ut_format    - utc time format
 
     let lt_format = Some(match cli_args.value_of("localtime") {
-                Some(format) => format.to_string(),
-                None => "%H:%M".to_string(),
-            });
+        Some(format) => format.to_string(),
+        None => "%H:%M".to_string(),
+    });
     let ut_format = Some(match cli_args.value_of("utctime") {
-                Some(format) => format.to_string(),
-                None => "%H:%M".to_string(),
-            });
+        Some(format) => format.to_string(),
+        None => "%H:%M".to_string(),
+    });
 
     let mut cfg = Config {
         action: Action::Cpu,

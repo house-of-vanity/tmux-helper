@@ -1,6 +1,6 @@
 [package]
 name = "tmux-helper"
-version = "0.3.2"
+version = "0.3.3"
 description = "Utility for printing system info for tmux status line."
 authors = ["Ultra Desu <ultradesu@hexor.ru>"]
 edition = "2018"
@@ -11,3 +11,4 @@ dbus = "*"
 chrono = "*"
 mpd = "*"
 clap = "*"
+size_format = "1.0"

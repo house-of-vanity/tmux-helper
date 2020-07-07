@@ -2,10 +2,11 @@ use crate::config;
 use crate::dbus::blocking::stdintf::org_freedesktop_dbus::Properties;
 use chrono::{DateTime, Local, Utc};
 use dbus::{arg, blocking::Connection};
+use mpd::Client;
+use size_format::SizeFormatterBinary;
+use std::process;
 use std::time::Duration;
 use sys_info;
-use mpd::Client;
-use std::process;
 
 #[derive(Debug, Clone)]
 pub struct TrackInfo {
@@ -47,7 +48,10 @@ pub fn mem_load_bar(bar_len: i32, config: &config::Config) {
     let len =
         ((memory.total - memory.avail) as f32 / (memory.total as f32) * bar_len as f32) as i32;
     to_bar(len, bar_len, 0.7, 0.9, config);
-    print!("{:.0} MiB#[default]", memory.avail / 1024);
+    print!(
+        "{}B #[default]",
+        SizeFormatterBinary::new((memory.avail * 1000) as u64)
+    );
 }
 
 pub fn cpu_load_bar(bar_len: i32, config: &config::Config) {
@@ -181,8 +185,7 @@ fn shorten(line: String, max_len: usize, max_shift: usize) -> String {
             new_line.push(ch);
             counter += 1;
         }
-    }
-    else {
+    } else {
         new_line = line;
     }
     new_line
@@ -224,7 +227,10 @@ pub fn mpris(config: &config::Config) {
 pub fn mpd(config: &config::Config) {
     let mut conn = match Client::connect(&config.mpd_server) {
         Ok(conn) => conn,
-        Err(e) => {println!("Can't connect to MPD server. {}", e); process::exit(0x0001)}
+        Err(e) => {
+            println!("Can't connect to MPD server. {}", e);
+            process::exit(0x0001)
+        }
     };
     let mut track_info = TrackInfo {
         title: String::new(),
@@ -233,7 +239,7 @@ pub fn mpd(config: &config::Config) {
         duration: String::new(),
         status: String::new(),
     };
-//  println!("{:?}", conn.currentsong());
+    //  println!("{:?}", conn.currentsong());
     if let Some(song) = conn.currentsong().unwrap() {
         if let Some(title) = song.title {
             track_info.title = title
@@ -249,18 +255,16 @@ pub fn mpd(config: &config::Config) {
         }
     }
     if let Some(time) = conn.status().unwrap().time {
-            track_info.position = format_time(time.0.num_seconds() as i64);
-            track_info.duration = format_time(time.1.num_seconds() as i64);
+        track_info.position = format_time(time.0.num_seconds() as i64);
+        track_info.duration = format_time(time.1.num_seconds() as i64);
     }
     let status = match conn.status() {
-        Ok(status) => {
-            match status.state {
-                mpd::State::Play => "▶".to_string(),
-                mpd::State::Pause => "⏸".to_string(),
-                mpd::State::Stop => "⏹".to_string(),
-            }
-        }
-        Err(_) => {"⏹".to_string()},
+        Ok(status) => match status.state {
+            mpd::State::Play => "▶".to_string(),
+            mpd::State::Pause => "⏸".to_string(),
+            mpd::State::Stop => "⏹".to_string(),
+        },
+        Err(_) => "⏹".to_string(),
     };
     track_info.status = status;
     format_player(track_info, config)
