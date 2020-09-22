@@ -1,7 +1,7 @@
 # Maintainer: Alexandr Bogomyakov (ultradesu) <ab@hexor.ru>
 
 pkgname=tmux-helper
-pkgver=0.3.3
+pkgver=0.3.4
 pkgrel=1
 pkgdesc="Tmux helper"
 url="https://github.com/house-of-vanity/tmux-helper.git"

@@ -200,21 +200,37 @@ fn format_player(track_info: TrackInfo, config: &config::Config) {
     }
     let artist_line = shorten(track_info.artist, max_len, 6);
     let title_line = shorten(track_info.title, max_len, 6);
-    println!(
-        "#[none]#[bold]{}{}{}#[none]{}{}{}{} {}[{}/{}] {} {}#[default]",
-        config.color_track_name,
-        title_line,
-        config.color_end,
-        separator,
-        config.color_track_artist,
-        artist_line,
-        config.color_end,
-        config.color_track_time,
-        track_info.position,
-        track_info.duration,
-        track_info.status,
-        config.color_end,
-    );
+    if track_info.position == "00:00" || track_info.duration == "" {
+        println!(
+            "#[none]#[bold]{}{}{}#[none]{}{}{}{} {}{} {}#[default]",
+            config.color_track_name,
+            title_line,
+            config.color_end,
+            separator,
+            config.color_track_artist,
+            artist_line,
+            config.color_end,
+            config.color_track_time,
+            track_info.status,
+            config.color_end,
+        );
+    } else {
+        println!(
+            "#[none]#[bold]{}{}{}#[none]{}{}{}{} {}[{}/{}] {} {}#[default]",
+            config.color_track_name,
+            title_line,
+            config.color_end,
+            separator,
+            config.color_track_artist,
+            artist_line,
+            config.color_end,
+            config.color_track_time,
+            track_info.position,
+            track_info.duration,
+            track_info.status,
+            config.color_end,
+        );
+    }
 }
 
 pub fn mpris(config: &config::Config) {
