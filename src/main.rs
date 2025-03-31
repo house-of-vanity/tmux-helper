@@ -1,27 +1,18 @@
-extern crate chrono;
-extern crate dbus;
-extern crate mpd;
-
 mod config;
 mod utils;
 
 #[derive(Debug, Clone)]
-struct TrackInfo {
-    title: String,
-    artist: String,
-    position: String,
-    duration: String,
-    status: String,
+pub struct TrackInfo {
+    pub title: String,
+    pub artist: String,
+    pub position: String,
+    pub duration: String,
+    pub status: String,
 }
 
 fn main() {
     let conf = config::read();
-    // cpu          - cpu usage bar
-    // mem          - mem usage bar
-    // mpris        - player info using MPRIS2 interface
-    // mpd          - player info using MPD native interface
-    // utctime      - utc time
-    // localtime    - local time
+
     match conf.action {
         config::Action::Cpu => utils::cpu_load_bar(15, &conf),
         config::Action::Mem => utils::mem_load_bar(15, &conf),
@@ -31,3 +22,4 @@ fn main() {
         config::Action::Mpd => utils::mpd(&conf),
     }
 }
+

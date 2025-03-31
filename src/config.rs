@@ -1,4 +1,4 @@
-use clap::{App, Arg};
+use clap::{Arg, Command};
 
 #[derive(Debug)]
 pub enum Action {
@@ -36,191 +36,142 @@ fn colorize(color: String) -> String {
 }
 
 pub fn read() -> Config {
-    // Parse opts and args
-    let cli_args = App::new(env!("CARGO_PKG_NAME"))
+    let cli_args = Command::new(env!("CARGO_PKG_NAME"))
         .version(env!("CARGO_PKG_VERSION"))
         .author(env!("CARGO_PKG_AUTHORS"))
         .about(env!("CARGO_PKG_DESCRIPTION"))
-        // Flags
         .arg(
-            Arg::with_name("cpu")
-                .short("c")
+            Arg::new("cpu")
+                .short('c')
                 .long("cpu")
                 .help("Print cpu load bar.")
-                .conflicts_with_all(&["mem", "mpris", "mpd", "localtime", "utctime"])
-                .required(false),
+                .action(clap::ArgAction::SetTrue)
+                .conflicts_with_all(["mem", "mpris", "mpd", "localtime", "utctime"]),
         )
         .arg(
-            Arg::with_name("mem")
-                .short("m")
+            Arg::new("mem")
+                .short('m')
                 .long("mem")
-                .help("Print mem usage bar.")
-                //              .conflicts_with("cpu")
-                //              .conflicts_with("mpris")
-                //              .conflicts_with("mpd")
-                //              .conflicts_with("localtime")
-                //              .conflicts_with("utctime")
-                .required(false),
+                .action(clap::ArgAction::SetTrue)
+                .help("Print mem usage bar."),
         )
         .arg(
-            Arg::with_name("mpris")
-                .short("p")
+            Arg::new("mpris")
+                .short('p')
                 .long("mpris")
-                .help("Show player info using MPRIS2 interface.")
-                //              .conflicts_with("cpu")
-                //              .conflicts_with("mem")
-                //              .conflicts_with("localtime")
-                //              .conflicts_with("mpd")
-                //              .conflicts_with("utctime")
-                .required(false),
+                .action(clap::ArgAction::SetTrue)
+                .help("Show player info using MPRIS2 interface."),
         )
         .arg(
-            Arg::with_name("mpd")
-                .short("d")
+            Arg::new("mpd")
+                .short('d')
                 .long("mpd")
-                .help("Show mpd player using MPD native protocol.")
-                //              .conflicts_with("cpu")
-                //              .conflicts_with("mem")
-                //              .conflicts_with("localtime")
-                //              .conflicts_with("mpris")
-                //              .conflicts_with("utctime")
-                .required(false),
+                .action(clap::ArgAction::SetTrue)
+                .help("Show mpd player using MPD native protocol."),
         )
-        // Options
         .arg(
-            Arg::with_name("localtime")
-                .short("l")
+            Arg::new("localtime")
+                .short('l')
                 .long("localtime")
                 .help("Local time")
-                //              .conflicts_with_all(&["mem", "mpris", "mpd", "cpu", "utctime"])
-                .takes_value(true)
-                .required(false),
+                .num_args(0..=1)
+                .default_missing_value("%H:%M"),
         )
         .arg(
-            Arg::with_name("utctime")
-                .short("u")
+            Arg::new("utctime")
+                .short('u')
                 .long("utctime")
                 .help("UTC time")
-                //              .conflicts_with_all(&["mem", "mpris", "mpd", "cpu", "localtime"])
-                .takes_value(true)
-                .required(false),
+                .num_args(0..=1)
+                .default_missing_value("%H:%M"),
         )
         .arg(
-            Arg::with_name("mpd_address")
-                .short("a")
+            Arg::new("mpd_address")
+                .short('a')
                 .long("mpd-address")
                 .help("<ADDR>:<PORT> of MPD server.")
-                .takes_value(true)
-                .default_value("127.0.0.1:6600")
-                .required(false),
+                .default_value("127.0.0.1:6600"),
         )
         .arg(
-            Arg::with_name("COLOR_LOW")
+            Arg::new("COLOR_LOW")
                 .long("COLOR_LOW")
                 .help("CPU and MEM bar color while low usage.")
-                .takes_value(true)
-                .default_value("119")
-                .required(false),
+                .default_value("119"),
         )
         .arg(
-            Arg::with_name("COLOR_MID")
+            Arg::new("COLOR_MID")
                 .long("COLOR_MID")
                 .help("CPU and MEM bar color while mid usage.")
-                .takes_value(true)
-                .default_value("220")
-                .required(false),
+                .default_value("220"),
         )
         .arg(
-            Arg::with_name("COLOR_HIGH")
+            Arg::new("COLOR_HIGH")
                 .long("COLOR_HIGH")
                 .help("CPU and MEM bar color while high usage.")
-                .takes_value(true)
-                .default_value("197")
-                .required(false),
+                .default_value("197"),
         )
         .arg(
-            Arg::with_name("COLOR_TRACK_NAME")
+            Arg::new("COLOR_TRACK_NAME")
                 .long("COLOR_TRACK_NAME")
                 .help("Color of track name filed.")
-                .takes_value(true)
-                .default_value("46")
-                .required(false),
+                .default_value("46"),
         )
         .arg(
-            Arg::with_name("COLOR_TRACK_ARTIST")
+            Arg::new("COLOR_TRACK_ARTIST")
                 .long("COLOR_TRACK_ARTIST")
                 .help("Color of artist name filed.")
-                .takes_value(true)
-                .default_value("46")
-                .required(false),
+                .default_value("46"),
         )
         .arg(
-            Arg::with_name("COLOR_TRACK_TIME")
+            Arg::new("COLOR_TRACK_TIME")
                 .long("COLOR_TRACK_TIME")
                 .help("Color of playing time field.")
-                .takes_value(true)
-                .default_value("153")
-                .required(false),
+                .default_value("153"),
         )
         .arg(
-            Arg::with_name("COLOR_END")
+            Arg::new("COLOR_END")
                 .long("COLOR_END")
                 .help("Default color using to terminate others.")
-                .takes_value(true)
-                .default_value("153")
-                .required(false),
+                .default_value("153"),
         )
         .get_matches();
 
-    // cpu          - cpu usage bar
-    // mem          - mem usage bar
-    // mpris        - player info using MPRIS2 interface
-    // mpd          - player info using MPD native interface
-    // utctime      - utc time
-    // localtime    - local time
-    // lt_format    - local time format
-    // ut_format    - utc time format
-
-    let lt_format = Some(match cli_args.value_of("localtime") {
-        Some(format) => format.to_string(),
-        None => "%H:%M".to_string(),
-    });
-    let ut_format = Some(match cli_args.value_of("utctime") {
-        Some(format) => format.to_string(),
-        None => "%H:%M".to_string(),
-    });
+    let lt_format = cli_args.get_one::<String>("localtime").map(|s| s.to_string());
+    let ut_format = cli_args.get_one::<String>("utctime").map(|s| s.to_string());
 
     let mut cfg = Config {
         action: Action::Cpu,
-        mpd_server: cli_args.value_of("mpd_address").unwrap().to_string(),
-        lt_format: lt_format,
-        ut_format: ut_format,
-        color_low: colorize(cli_args.value_of("COLOR_LOW").unwrap().to_string()),
-        color_mid: colorize(cli_args.value_of("COLOR_MID").unwrap().to_string()),
-        color_high: colorize(cli_args.value_of("COLOR_HIGH").unwrap().to_string()),
-        color_track_name: colorize(cli_args.value_of("COLOR_TRACK_NAME").unwrap().to_string()),
-        color_track_artist: colorize(cli_args.value_of("COLOR_TRACK_ARTIST").unwrap().to_string()),
-        color_track_time: colorize(cli_args.value_of("COLOR_TRACK_TIME").unwrap().to_string()),
-        color_end: colorize(cli_args.value_of("COLOR_END").unwrap().to_string()),
+        mpd_server: cli_args.get_one::<String>("mpd_address").unwrap().to_string(),
+        lt_format,
+        ut_format,
+        color_low: colorize(cli_args.get_one::<String>("COLOR_LOW").unwrap().to_string()),
+        color_mid: colorize(cli_args.get_one::<String>("COLOR_MID").unwrap().to_string()),
+        color_high: colorize(cli_args.get_one::<String>("COLOR_HIGH").unwrap().to_string()),
+        color_track_name: colorize(cli_args.get_one::<String>("COLOR_TRACK_NAME").unwrap().to_string()),
+        color_track_artist: colorize(cli_args.get_one::<String>("COLOR_TRACK_ARTIST").unwrap().to_string()),
+        color_track_time: colorize(cli_args.get_one::<String>("COLOR_TRACK_TIME").unwrap().to_string()),
+        color_end: colorize(cli_args.get_one::<String>("COLOR_END").unwrap().to_string()),
     };
 
-    if cli_args.is_present("cpu") {
+    if cli_args.get_flag("cpu") {
         cfg.action = Action::Cpu;
     }
-    if cli_args.is_present("mem") {
+    if cli_args.get_flag("mem") {
         cfg.action = Action::Mem;
     }
-    if cli_args.is_present("localtime") {
+    if cli_args.contains_id("localtime") {
         cfg.action = Action::Localtime;
     }
-    if cli_args.is_present("utctime") {
+    if cli_args.contains_id("utctime") {
         cfg.action = Action::Utctime;
     }
-    if cli_args.is_present("mpris") {
+    if cli_args.get_flag("mpris") {
         cfg.action = Action::Mpris;
     }
-    if cli_args.is_present("mpd") {
+    if cli_args.get_flag("mpd") {
         cfg.action = Action::Mpd;
     }
+
     cfg
 }
+
