@@ -93,11 +93,26 @@ jobs:
         with:
           name: tmux-helper-macos
           path: ./
-
       - name: Upload binary assets
         run: |
           wget https://github.com/aktau/github-release/releases/download/v0.7.2/linux-amd64-github-release.tar.bz2
           tar xjf linux-amd64-github-release.tar.bz2
           export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-          ./bin/linux/amd64/github-release
+
+          ./bin/linux/amd64/github-release upload \
+            -u house-of-vanity \
+            -r tmux-helper \
+            --tag ${{ steps.get_version.outputs.FULL_TAG }} \
+            --name tmux-helper-${{ steps.get_version.outputs.VERSION }}-linux \
+            --file ./tmux-helper
+
+          mv ./tmux-helper ./tmux-helper-macos
+
+          ./bin/linux/amd64/github-release upload \
+            -u house-of-vanity \
+            -r tmux-helper \
+            --tag ${{ steps.get_version.outputs.FULL_TAG }} \
+            --name tmux-helper-${{ steps.get_version.outputs.VERSION }}-macos \
+            --file ./tmux-helper-macos
+
 
