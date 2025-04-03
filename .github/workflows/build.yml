@@ -5,23 +5,25 @@ on:
     tags:
       - 'v*'
 
+env:
+  BINARY_NAME: tmux-helper
+
 jobs:
-  make_bin:
-    name: Build binary
+  build:
+    name: Build binaries
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest]
         include:
           - os: ubuntu-latest
-            artifact_name: tmux-helper-linux
+            platform_name: linux-amd64
           - os: macos-latest
-            artifact_name: tmux-helper-macos
+            platform_name: macos-arm64
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v4
 
-      - name: Pre-build (Linux only)
+      - name: Pre-build (Linux)
         if: matrix.os == 'ubuntu-latest'
         run: sudo apt install -y libdbus-1-dev pkg-config libdbus-1-3 libfuse-dev
 
@@ -32,87 +34,62 @@ jobs:
       - name: Build binary
         run: cargo build --release
 
-      - name: Upload binary
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.artifact_name }}
-          path: ./target/release/tmux-helper
-
-# make_arch:
-#   name: Make Arch Linux package
-#   runs-on: ubuntu-latest
-#   container:
-#     image: archlinux
-#     options: --privileged
-#   steps:
-#     - uses: actions/checkout@v2
-#     - name: Disable systemd-nspawn
-#       run: echo 'BUILDENV+=(!use_nspawn)' >> /etc/makepkg.conf
-#     - name: Build Arch Linux package
-#       uses: FFY00/build-arch-package@v1
-#       with:
-#         PKGBUILD: $GITHUB_WORKSPACE/.github/workflows/PKGBUILD
-#         OUTDIR: $HOME/arch-packages
-#     - run: mv $HOME/arch-packages/*pkg.tar.zst tmux-helper-x86_64.pkg.tar.zst
-#     - name: Upload Arch Package
-#       uses: actions/upload-artifact@v4
-#       with:
-#         name: arch_linux_tmux-helper-x86_64.pkg.tar.zst
-#         path: ./tmux-helper-x86_64.pkg.tar.zst
-
-  publish:
-    name: Publish release
-    needs: make_bin
-    runs-on: ubuntu-latest
-    steps:
-      - name: Get version
-        id: get_version
+      - name: Rename binary
         run: |
-          echo ::set-output name=VERSION::${GITHUB_REF/refs\/tags\/v/}
-          echo ::set-output name=FULL_TAG::${GITHUB_REF/refs\/tags\//}
+          mkdir -p ${{ env.BINARY_NAME }}_${{ matrix.platform_name }}
+          cp target/release/${{ env.BINARY_NAME }} ${{ env.BINARY_NAME }}_${{ matrix.platform_name }}/${{ env.BINARY_NAME }}
 
-      - name: Create Release
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.BINARY_NAME }}_${{ matrix.platform_name }}
+          path: ${{ env.BINARY_NAME }}_${{ matrix.platform_name }}
+
+  release:
+    name: Create Release Page
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ncipollo/release-action@v1
         id: create_release
-        uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
+          allowUpdates: true
+          tag: ${{ github.ref_name }}
 
-      - name: Download Linux binary
-        uses: actions/download-artifact@v4
+  upload:
+    name: Upload Release Assets
+    needs: release
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        include:
+          - os: ubuntu-latest
+            platform_name: linux-amd64
+          - os: macos-latest
+            platform_name: macos-arm64
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        name: Download ${{ matrix.platform_name }} artifact
         with:
-          name: tmux-helper-linux
-          path: ./
+          name: ${{ env.BINARY_NAME }}_${{ matrix.platform_name }}
+          path: ${{ env.BINARY_NAME }}_${{ matrix.platform_name }}
 
-      - name: Download macOS binary
-        uses: actions/download-artifact@v4
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          name: tmux-helper-macos
-          path: ./
-      - name: Upload binary assets
-        run: |
-          wget https://github.com/aktau/github-release/releases/download/v0.7.2/linux-amd64-github-release.tar.bz2
-          tar xjf linux-amd64-github-release.tar.bz2
-          export GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
-
-          ./bin/linux/amd64/github-release upload \
-            -u house-of-vanity \
-            -r tmux-helper \
-            --tag ${{ steps.get_version.outputs.FULL_TAG }} \
-            --name tmux-helper-${{ steps.get_version.outputs.VERSION }}-linux \
-            --file ./tmux-helper
-
-          mv ./tmux-helper ./tmux-helper-macos
-
-          ./bin/linux/amd64/github-release upload \
-            -u house-of-vanity \
-            -r tmux-helper \
-            --tag ${{ steps.get_version.outputs.FULL_TAG }} \
-            --name tmux-helper-${{ steps.get_version.outputs.VERSION }}-macos \
-            --file ./tmux-helper-macos
-
+          upload_url: ${{ needs.release.outputs.upload_url }}
+          asset_path: ${{ env.BINARY_NAME }}_${{ matrix.platform_name }}/${{ env.BINARY_NAME }}
+          asset_name: ${{ env.BINARY_NAME }}_${{ matrix.platform_name }}
+          asset_content_type: application/octet-stream
 
