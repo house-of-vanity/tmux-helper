@@ -38,31 +38,31 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: ./target/release/tmux-helper
 
-  make_arch:
-    name: Make Arch Linux package
-    runs-on: ubuntu-latest
-    container:
-      image: archlinux
-      options: --privileged
-    steps:
-      - uses: actions/checkout@v2
-      - name: Disable systemd-nspawn
-        run: echo 'BUILDENV+=(!use_nspawn)' >> /etc/makepkg.conf
-      - name: Build Arch Linux package
-        uses: FFY00/build-arch-package@v1
-        with:
-          PKGBUILD: $GITHUB_WORKSPACE/.github/workflows/PKGBUILD
-          OUTDIR: $HOME/arch-packages
-      - run: mv $HOME/arch-packages/*pkg.tar.zst tmux-helper-x86_64.pkg.tar.zst
-      - name: Upload Arch Package
-        uses: actions/upload-artifact@v4
-        with:
-          name: arch_linux_tmux-helper-x86_64.pkg.tar.zst
-          path: ./tmux-helper-x86_64.pkg.tar.zst
+# make_arch:
+#   name: Make Arch Linux package
+#   runs-on: ubuntu-latest
+#   container:
+#     image: archlinux
+#     options: --privileged
+#   steps:
+#     - uses: actions/checkout@v2
+#     - name: Disable systemd-nspawn
+#       run: echo 'BUILDENV+=(!use_nspawn)' >> /etc/makepkg.conf
+#     - name: Build Arch Linux package
+#       uses: FFY00/build-arch-package@v1
+#       with:
+#         PKGBUILD: $GITHUB_WORKSPACE/.github/workflows/PKGBUILD
+#         OUTDIR: $HOME/arch-packages
+#     - run: mv $HOME/arch-packages/*pkg.tar.zst tmux-helper-x86_64.pkg.tar.zst
+#     - name: Upload Arch Package
+#       uses: actions/upload-artifact@v4
+#       with:
+#         name: arch_linux_tmux-helper-x86_64.pkg.tar.zst
+#         path: ./tmux-helper-x86_64.pkg.tar.zst
 
   publish:
     name: Publish release
-    needs: [make_bin, make_arch]
+    needs: make_bin
     runs-on: ubuntu-latest
     steps:
       - name: Get version
