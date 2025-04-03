@@ -29,7 +29,7 @@ jobs:
         run: cargo build --release
 
       - name: Upload binary
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: ./target/release/tmux-helper
@@ -49,7 +49,7 @@ jobs:
           OUTDIR: $HOME/arch-packages
       - run: mv $HOME/arch-packages/*pkg.tar.zst tmux-helper-x86_64.pkg.tar.zst
       - name: Upload Arch Package
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: arch_linux_tmux-helper-x86_64.pkg.tar.zst
           path: ./tmux-helper-x86_64.pkg.tar.zst
