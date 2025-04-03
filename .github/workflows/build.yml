@@ -46,6 +46,8 @@ jobs:
       options: --privileged
     steps:
       - uses: actions/checkout@v2
+      - name: Disable systemd-nspawn
+        run: echo 'BUILDENV+=(!use_nspawn)' >> /etc/makepkg.conf
       - name: Build Arch Linux package
         uses: FFY00/build-arch-package@v1
         with:
