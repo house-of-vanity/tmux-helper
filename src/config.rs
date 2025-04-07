@@ -22,6 +22,10 @@ pub struct Config {
     pub mpd_server: String,
     pub lt_format: Option<String>,
     pub ut_format: Option<String>,
+    pub bar_symbol: Option<String>,
+    pub bar_empty_symbol: Option<String>,
+    pub low_threshold: f32,
+    pub mid_threshold: f32,
     pub color_low: String,
     pub color_mid: String,
     pub color_high: String,
@@ -56,6 +60,20 @@ pub fn read() -> Config {
                 .help("Print mem usage bar."),
         )
         .arg(
+            Arg::new("low")
+                .long("low")
+                .help("Low threshold (0.0 - 1.0)")
+                .value_parser(clap::value_parser!(f32))
+                .default_value("0.7"),
+        )
+        .arg(
+            Arg::new("mid")
+                .long("mid")
+                .help("Mid threshold (0.0 - 1.0)")
+                .value_parser(clap::value_parser!(f32))
+                .default_value("0.9"),
+        )
+        .arg(
             Arg::new("mpris")
                 .short('p')
                 .long("mpris")
@@ -84,6 +102,22 @@ pub fn read() -> Config {
                 .help("UTC time")
                 .num_args(0..=1)
                 .default_missing_value("%H:%M"),
+        )
+        .arg(
+            Arg::new("bar_symbol")
+                .short('s')
+                .long("symbol")
+                .help("Symbol to build bar")
+                .num_args(0..=1)
+                .default_value("▮"),
+        )
+        .arg(
+            Arg::new("bar_empty_symbol")
+                .short('e')
+                .long("empty-symbol")
+                .help("Symbol to represent the empty part of the bar")
+                .num_args(0..=1)
+                .default_value("▯"),
         )
         .arg(
             Arg::new("mpd_address")
@@ -136,20 +170,55 @@ pub fn read() -> Config {
         )
         .get_matches();
 
-    let lt_format = cli_args.get_one::<String>("localtime").map(|s| s.to_string());
+    let lt_format = cli_args
+        .get_one::<String>("localtime")
+        .map(|s| s.to_string());
     let ut_format = cli_args.get_one::<String>("utctime").map(|s| s.to_string());
+    let bar_symbol = cli_args
+        .get_one::<String>("bar_symbol")
+        .map(|s| s.to_string());
+    let bar_empty_symbol = cli_args
+        .get_one::<String>("bar_empty_symbol")
+        .map(|s| s.to_string());
 
     let mut cfg = Config {
         action: Action::Cpu,
-        mpd_server: cli_args.get_one::<String>("mpd_address").unwrap().to_string(),
+        mpd_server: cli_args
+            .get_one::<String>("mpd_address")
+            .unwrap()
+            .to_string(),
         lt_format,
         ut_format,
+        bar_symbol,
+        bar_empty_symbol,
+        low_threshold: *cli_args.get_one::<f32>("low").unwrap(),
+        mid_threshold: *cli_args.get_one::<f32>("mid").unwrap(),
         color_low: colorize(cli_args.get_one::<String>("COLOR_LOW").unwrap().to_string()),
         color_mid: colorize(cli_args.get_one::<String>("COLOR_MID").unwrap().to_string()),
-        color_high: colorize(cli_args.get_one::<String>("COLOR_HIGH").unwrap().to_string()),
-        color_track_name: colorize(cli_args.get_one::<String>("COLOR_TRACK_NAME").unwrap().to_string()),
-        color_track_artist: colorize(cli_args.get_one::<String>("COLOR_TRACK_ARTIST").unwrap().to_string()),
-        color_track_time: colorize(cli_args.get_one::<String>("COLOR_TRACK_TIME").unwrap().to_string()),
+        color_high: colorize(
+            cli_args
+                .get_one::<String>("COLOR_HIGH")
+                .unwrap()
+                .to_string(),
+        ),
+        color_track_name: colorize(
+            cli_args
+                .get_one::<String>("COLOR_TRACK_NAME")
+                .unwrap()
+                .to_string(),
+        ),
+        color_track_artist: colorize(
+            cli_args
+                .get_one::<String>("COLOR_TRACK_ARTIST")
+                .unwrap()
+                .to_string(),
+        ),
+        color_track_time: colorize(
+            cli_args
+                .get_one::<String>("COLOR_TRACK_TIME")
+                .unwrap()
+                .to_string(),
+        ),
         color_end: colorize(cli_args.get_one::<String>("COLOR_END").unwrap().to_string()),
     };
 
@@ -174,4 +243,3 @@ pub fn read() -> Config {
 
     cfg
 }
-
