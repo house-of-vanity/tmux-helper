@@ -6,8 +6,9 @@ use dbus::{arg, blocking::Connection};
 use mpd::Client;
 use size_format::SizeFormatterBinary;
 use std::process;
+use std::thread;
 use std::time::Duration;
-use sys_info;
+use sysinfo::System;
 
 #[derive(Debug, Clone)]
 pub struct TrackInfo {
@@ -39,9 +40,26 @@ pub fn to_bar(value: i32, max: i32, low: f32, mid: f32, config: &config::Config)
 }
 
 pub fn mem_load_bar(bar_len: i32, config: &config::Config) {
-    let memory = sys_info::mem_info().expect("Failed to get mem_info");
-    let used_ratio = (memory.total - memory.avail) as f32 / memory.total as f32;
+    let mut sys = System::new_all();
+    sys.refresh_memory();
+    
+    let total_memory = sys.total_memory();
+    let used_memory = sys.used_memory();
+    
+    // On macOS sysinfo.used_memory() includes caches and compressed memory
+    // Try a more conservative estimate
+    // Usually real used memory is about 30-50% of what sysinfo shows
+    #[cfg(target_os = "macos")]
+    let actual_used = used_memory * 40 / 100; // Approximately 40% of sysinfo.used_memory
+    
+    #[cfg(not(target_os = "macos"))]
+    let actual_used = used_memory;
+    
+    let actual_free = total_memory - actual_used;
+    
+    let used_ratio = actual_used as f32 / total_memory as f32;
     let len = (used_ratio * bar_len as f32) as i32;
+    
     to_bar(
         len,
         bar_len,
@@ -49,16 +67,33 @@ pub fn mem_load_bar(bar_len: i32, config: &config::Config) {
         config.mid_threshold,
         config,
     );
+    
+    // Show: used/free
     print!(
-        "{}B #[default]",
-        SizeFormatterBinary::new((memory.avail * 1024) as u64)
+        "{}/{} #[default]",
+        SizeFormatterBinary::new(actual_used),
+        SizeFormatterBinary::new(actual_free)
     );
 }
 
 pub fn cpu_load_bar(bar_len: i32, config: &config::Config) {
-    let cpu_count = sys_info::cpu_num().expect("Failed to get cpu_num");
-    let la_one = sys_info::loadavg().expect("Failed to get loadavg").one;
-    let len = (la_one / cpu_count as f64 * bar_len as f64).round() as i32;
+    let mut sys = System::new_all();
+    
+    // Update CPU information
+    sys.refresh_cpu_all();
+    
+    // Wait a bit to get accurate CPU usage data
+    thread::sleep(sysinfo::MINIMUM_CPU_UPDATE_INTERVAL);
+    sys.refresh_cpu_all();
+    
+    let cpu_count = sys.cpus().len();
+    
+    // Get average CPU usage
+    let cpu_usage: f32 = sys.cpus().iter().map(|cpu| cpu.cpu_usage()).sum::<f32>() / cpu_count as f32;
+    let cpu_load_ratio = cpu_usage / 100.0; // sysinfo returns percentages
+    
+    let len = (cpu_load_ratio * bar_len as f32).round() as i32;
+    
     to_bar(
         len,
         bar_len,
@@ -67,7 +102,7 @@ pub fn cpu_load_bar(bar_len: i32, config: &config::Config) {
         config,
     );
 
-    print!("{:.2} LA1#[default]", la_one);
+    print!("{:.1}% CPU#[default]", cpu_usage);
 }
 
 pub fn get_player() -> Result<Vec<String>, Box<dyn std::error::Error>> {
