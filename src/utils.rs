@@ -102,7 +102,7 @@ pub fn cpu_load_bar(bar_len: i32, config: &config::Config) {
         config,
     );
 
-    print!("{:.1}% CPU#[default]", cpu_usage);
+    print!("{:.1}%#[default]", cpu_usage);
 }
 
 pub fn get_player() -> Result<Vec<String>, Box<dyn std::error::Error>> {
