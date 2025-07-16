@@ -1,5 +1,5 @@
 # Tmux helper
-Small app that perform system check and print TMUX friendly output.
+Small app that perform system check and print TMUX friendly output. Prebuilded for MacOS M chip and Linux AMD64
 
 <img width="1495" height="1264" alt="image" src="https://github.com/user-attachments/assets/7b9ffc97-0b59-4028-9b5d-f29347d16000" />
 
